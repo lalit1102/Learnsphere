@@ -28,11 +28,6 @@ export const sidebardata = {
           url: "/dashboard",
           roles: ["admin", "teacher", "student", "parent"],
         },
-        {
-          title: "Activities Log",
-          url: "/activities-log",
-          roles: ["admin"],
-        },
       ],
     },
     {
@@ -56,7 +51,7 @@ export const sidebardata = {
       roles: ["admin", "teacher"],
       items: [
         { title: "Attendance Report", url: "/reports/attendance", roles: ["admin", "teacher"] },
-        { title: "Activity Log", url: "/activities-log", roles: ["admin"] },
+        { title: "Activity Reports", url: "/reports/activity", roles: ["admin"] },
         { title: "Academic Summary", url: "/reports/academic", roles: ["admin"] },
       ],
     },
@@ -75,7 +70,7 @@ export const sidebardata = {
       title: "People",
       url: "#",
       icon: Users,
-      roles: ["admin", "teacher", "student"],
+      roles: ["admin", "teacher"],
       items: [
         { title: "My Students", url: "/teacher/my-students", roles: ["teacher"] },
         { title: "Students", url: "/users/students", roles: ["admin"] },
@@ -104,6 +99,7 @@ export const sidebardata = {
         { title: "School Settings", url: "/settings/general", roles: ["admin"] },
         { title: "Academic Years", url: "/settings/academic-years", roles: ["admin"] },
         { title: "Roles & Permissions", url: "/settings/roles", roles: ["admin"] },
+        { title: "Audit Logs", url: "/activities-log", roles: ["admin"] },
       ],
     },
   ],

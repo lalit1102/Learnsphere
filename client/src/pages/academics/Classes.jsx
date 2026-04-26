@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
 import { Plus } from "lucide-react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "../../context/AuthContext";
 
 import { api } from "@/lib/api";
 
@@ -22,7 +22,8 @@ const Classes = () => {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [pageNum, setPageNum] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const { user } = useAuth();
+  const auth = useAuth();
+  const user = auth?.user;
   const isAdmin = user?.role === "admin";
   
   // Dialog & Modal Engagement States

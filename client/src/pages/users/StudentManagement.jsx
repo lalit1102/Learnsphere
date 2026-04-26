@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { 
   Users, 
-  Plus, 
   Search, 
   MoreVertical, 
   Edit2, 
@@ -10,11 +9,8 @@ import {
   UserPlus, 
   GraduationCap, 
   Phone, 
-  MapPin,
   Mail,
   Loader2,
-  ChevronLeft,
-  ChevronRight,
   ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
@@ -43,11 +39,15 @@ import { CustomInput } from "@/components/global/CustomInput";
 import { CustomSelect } from "@/components/global/CustomSelect";
 import { useForm } from "react-hook-form";
 
+import { useNavigate } from "react-router-dom";
+
 const StudentManagement = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingStudent, setEditingStudent] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { control, handleSubmit, reset, setValue } = useForm({
@@ -86,14 +86,35 @@ const StudentManagement = () => {
 
   const onSubmit = async (data) => {
     try {
-      await api.post("/students/enroll", data);
-      toast.success("Student successfully enrolled in the academy");
+      if (editingStudent) {
+        await api.put(`/students/${editingStudent._id}`, data);
+        toast.success("Student profile successfully updated");
+      } else {
+        await api.post("/students/enroll", data);
+        toast.success("Student successfully enrolled in the academy");
+      }
       setIsDialogOpen(false);
+      setEditingStudent(null);
       reset();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Enrollment failed");
+      toast.error(error.response?.data?.message || "Operation failed");
     }
+  };
+
+  const handleEdit = (student) => {
+    setEditingStudent(student);
+    reset({
+      name: student.user?.name,
+      email: student.user?.email,
+      contact: student.user?.contact || "",
+      grNumber: student.grNumber,
+      parentName: student.parentName,
+      parentPhone: student.parentPhone,
+      address: student.address,
+      classId: student.user?.studentClass?._id || student.user?.studentClass || "",
+    });
+    setIsDialogOpen(true);
   };
 
   const handleDelete = async (id) => {
@@ -136,7 +157,7 @@ const StudentManagement = () => {
            </div>
            <Dialog open={isDialogOpen} onOpenChange={(open) => {
              setIsDialogOpen(open);
-             if(!open) reset();
+             if(!open) { setEditingStudent(null); reset(); }
            }}>
              <DialogTrigger asChild>
                <Button className="h-11 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 transition-all active:scale-95">
@@ -145,8 +166,8 @@ const StudentManagement = () => {
              </DialogTrigger>
              <DialogContent className="max-w-2xl rounded-[2.5rem] p-8 border-none shadow-2xl overflow-y-auto max-h-[90vh]">
                <DialogHeader className="mb-4">
-                 <DialogTitle className="text-2xl font-black italic uppercase">Student Enrollment</DialogTitle>
-                 <DialogDescription className="font-medium italic">Initialize a new academic profile within the institutional registry.</DialogDescription>
+                 <DialogTitle className="text-2xl font-black italic uppercase">{editingStudent ? "Edit Student Profile" : "Student Enrollment"}</DialogTitle>
+                 <DialogDescription className="font-medium italic">{editingStudent ? "Update academic metadata and residential credentials." : "Initialize a new academic profile within the institutional registry."}</DialogDescription>
                </DialogHeader>
                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                  {/* Personal Info */}
@@ -155,7 +176,7 @@ const StudentManagement = () => {
                     <CustomInput control={control} name="email" label="Academic Email" placeholder="email@school.com" rules={{required: true}} />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <CustomInput control={control} name="password" label="Temporary Password" type="password" placeholder="********" rules={{required: true}} />
+                    {!editingStudent && <CustomInput control={control} name="password" label="Temporary Password" type="password" placeholder="********" rules={{required: true}} />}
                     <CustomInput control={control} name="contact" label="Contact Number" placeholder="+1..." />
                  </div>
 
@@ -184,7 +205,7 @@ const StudentManagement = () => {
 
                  <DialogFooter className="mt-8">
                    <Button type="submit" className="w-full h-12 bg-slate-900 text-white rounded-2xl font-black shadow-xl uppercase tracking-widest">
-                      Authorize Enrollment
+                      {editingStudent ? "Synchronize Changes" : "Authorize Enrollment"}
                    </Button>
                  </DialogFooter>
                </form>
@@ -255,8 +276,11 @@ const StudentManagement = () => {
                               <MoreVertical className="h-5 w-5 text-slate-400" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[160px]">
-                            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
+                          <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[180px]">
+                            <DropdownMenuItem onClick={() => navigate(`/dashboard/students/${student.user?._id || student.user}`)} className="rounded-xl py-3 cursor-pointer text-indigo-600 focus:bg-indigo-50">
+                              <Users className="h-4 w-4 mr-2" /> <span className="font-bold">View Full Profile</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEdit(student)} className="rounded-xl py-3 cursor-pointer">
                               <Edit2 className="h-4 w-4 mr-2" /> <span className="font-bold">Modify Profile</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleDelete(student._id)} className="rounded-xl py-3 cursor-pointer text-rose-600 focus:text-rose-600">

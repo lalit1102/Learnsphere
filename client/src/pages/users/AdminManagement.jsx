@@ -2,22 +2,17 @@ import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useNavigate } from "react-router-dom";
 import { 
-  Users, 
-  Plus, 
   Search, 
   MoreVertical, 
   Edit2, 
   Trash2, 
-  UserPlus, 
   ShieldAlert, 
   Mail,
-  Phone,
   ShieldCheck,
   Clock,
   Loader2,
   Lock,
-  Zap,
-  Star
+  Zap
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/context/AuthContext";
@@ -52,6 +47,7 @@ const AdminManagement = () => {
   const [admins, setAdmins] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingAdmin, setEditingAdmin] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { control, handleSubmit, reset } = useForm({
@@ -71,7 +67,7 @@ const AdminManagement = () => {
       setAdmins(data || []);
     } catch (error) {
       if (error.response?.status === 403) {
-        // Handled by UI check below
+        // Handled by UI check
       } else {
         toast.error("Administrative audit failed");
       }
@@ -90,14 +86,31 @@ const AdminManagement = () => {
 
   const onSubmit = async (data) => {
     try {
-      await api.post("/admins/enroll", data);
-      toast.success("Administrative authorization granted");
+      if (editingAdmin) {
+        await api.put(`/admins/${editingAdmin._id}`, data);
+        toast.success("Administrative profile successfully synchronized");
+      } else {
+        await api.post("/admins/enroll", data);
+        toast.success("Administrative authorization granted");
+      }
       setIsDialogOpen(false);
+      setEditingAdmin(null);
       reset();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Authorization failed");
+      toast.error(error.response?.data?.message || "Operation failed");
     }
+  };
+
+  const handleEdit = (admin) => {
+    setEditingAdmin(admin);
+    reset({
+      name: admin.name,
+      email: admin.email,
+      contact: admin.contact || "",
+      isSuperAdmin: admin.isSuperAdmin || false
+    });
+    setIsDialogOpen(true);
   };
 
   const toggleSuperStatus = async (id) => {
@@ -172,7 +185,10 @@ const AdminManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
            </div>
-           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+           <Dialog open={isDialogOpen} onOpenChange={(open) => {
+             setIsDialogOpen(open);
+             if(!open) { setEditingAdmin(null); reset(); }
+           }}>
              <DialogTrigger asChild>
                <Button className="h-11 px-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold shadow-lg shadow-slate-200 transition-all active:scale-95">
                  <ShieldCheck className="h-5 w-5 mr-2" /> Authorize Admin
@@ -180,8 +196,8 @@ const AdminManagement = () => {
              </DialogTrigger>
              <DialogContent className="max-w-xl rounded-[2.5rem] p-8 border-none shadow-2xl">
                <DialogHeader className="mb-4">
-                 <DialogTitle className="text-2xl font-black italic uppercase">Authorization Protocol</DialogTitle>
-                 <DialogDescription className="font-medium italic">Granting institutional control to a new administrative entity.</DialogDescription>
+                 <DialogTitle className="text-2xl font-black italic uppercase">{editingAdmin ? "Edit Administrative Credentials" : "Authorization Protocol"}</DialogTitle>
+                 <DialogDescription className="font-medium italic">{editingAdmin ? "Modify institutional control parameters for this entity." : "Granting institutional control to a new administrative entity."}</DialogDescription>
                </DialogHeader>
                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                  <div className="grid grid-cols-2 gap-4">
@@ -189,7 +205,7 @@ const AdminManagement = () => {
                     <CustomInput control={control} name="email" label="Official Email" placeholder="admin@school.com" rules={{required: true}} />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <CustomInput control={control} name="password" label="Gate Password" type="password" placeholder="********" rules={{required: true}} />
+                    {!editingAdmin && <CustomInput control={control} name="password" label="Gate Password" type="password" placeholder="********" rules={{required: true}} />}
                     <CustomInput control={control} name="contact" label="Direct Line" placeholder="+1..." />
                  </div>
 
@@ -207,7 +223,7 @@ const AdminManagement = () => {
 
                  <DialogFooter className="mt-8">
                    <Button type="submit" className="w-full h-12 bg-slate-900 text-white rounded-2xl font-black shadow-xl uppercase tracking-widest">
-                      Authorize Access
+                      {editingAdmin ? "Synchronize Authorization" : "Authorize Access"}
                    </Button>
                  </DialogFooter>
                </form>
@@ -275,6 +291,9 @@ const AdminManagement = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[200px]">
+                            <DropdownMenuItem onClick={() => handleEdit(admin)} className="rounded-xl py-3 cursor-pointer">
+                              <Edit2 className="h-4 w-4 mr-2" /> <span className="font-bold">Modify Profile</span>
+                            </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="rounded-xl py-3 cursor-pointer"
                               disabled={admin.email === "admin@example.com"}

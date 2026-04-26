@@ -2,15 +2,12 @@ import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { 
   Users, 
-  Plus, 
   Search, 
   MoreVertical, 
   Edit2, 
   Trash2, 
   UserPlus, 
-  BookOpen, 
   Mail,
-  Phone,
   Briefcase,
   Award,
   Loader2,
@@ -40,17 +37,16 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { CustomInput } from "@/components/global/CustomInput";
-import { CustomSelect } from "@/components/global/CustomSelect";
 import { useForm } from "react-hook-form";
 
 const TeacherManagement = () => {
   const [teachers, setTeachers] = useState([]);
-  const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingTeacher, setEditingTeacher] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const { control, handleSubmit, reset } = useForm({
+  const { control, handleSubmit, reset, setValue } = useForm({
     defaultValues: {
       name: "",
       email: "",
@@ -67,12 +63,10 @@ const TeacherManagement = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [teacherRes, subjectRes] = await Promise.all([
+      const [teacherRes] = await Promise.all([
         api.get("/teachers"),
-        api.get("/subjects")
       ]);
       setTeachers(teacherRes.data || []);
-      setSubjects(subjectRes.data || []);
     } catch (error) {
       toast.error("Failed to synchronize faculty registry");
     } finally {
@@ -86,13 +80,44 @@ const TeacherManagement = () => {
 
   const onSubmit = async (data) => {
     try {
-      await api.post("/teachers/enroll", data);
-      toast.success("Faculty member successfully appointed");
+      if (editingTeacher) {
+        await api.put(`/teachers/${editingTeacher._id}`, data);
+        toast.success("Faculty profile successfully updated");
+      } else {
+        await api.post("/teachers/enroll", data);
+        toast.success("Faculty member successfully appointed");
+      }
       setIsDialogOpen(false);
+      setEditingTeacher(null);
       reset();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Appointment failed");
+      toast.error(error.response?.data?.message || "Operation failed");
+    }
+  };
+
+  const handleEdit = (teacher) => {
+    setEditingTeacher(teacher);
+    reset({
+      name: teacher.name,
+      email: teacher.email,
+      contact: teacher.contact || "",
+      teacherId: teacher.teacherDetails?.teacherId || "",
+      specialization: teacher.teacherDetails?.specialization || "",
+      yearsOfExperience: teacher.teacherDetails?.yearsOfExperience || 0,
+      bio: teacher.teacherDetails?.bio || "",
+      subjects: teacher.teacherSubject?.map(s => s._id) || []
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleStatusToggle = async (id, currentStatus) => {
+    try {
+      const { data } = await api.patch(`/teachers/${id}/status`, { isActive: !currentStatus });
+      toast.success(data.message);
+      fetchData();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Status update failed");
     }
   };
 
@@ -122,7 +147,10 @@ const TeacherManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
            </div>
-           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+           <Dialog open={isDialogOpen} onOpenChange={(open) => {
+             setIsDialogOpen(open);
+             if(!open) { setEditingTeacher(null); reset(); }
+           }}>
              <DialogTrigger asChild>
                <Button className="h-11 px-6 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95">
                  <UserPlus className="h-5 w-5 mr-2" /> Appoint Teacher
@@ -130,8 +158,8 @@ const TeacherManagement = () => {
              </DialogTrigger>
              <DialogContent className="max-w-2xl rounded-[2.5rem] p-8 border-none shadow-2xl overflow-y-auto max-h-[90vh]">
                <DialogHeader className="mb-4">
-                 <DialogTitle className="text-2xl font-black italic uppercase">Faculty Appointment</DialogTitle>
-                 <DialogDescription className="font-medium italic">Enroll a new pedagogical expert into the academic ledger.</DialogDescription>
+                 <DialogTitle className="text-2xl font-black italic uppercase">{editingTeacher ? "Edit Faculty Profile" : "Faculty Appointment"}</DialogTitle>
+                 <DialogDescription className="font-medium italic">{editingTeacher ? "Update the professional narrative and institutional metadata." : "Enroll a new pedagogical expert into the academic ledger."}</DialogDescription>
                </DialogHeader>
                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                  {/* Identity Info */}
@@ -140,7 +168,7 @@ const TeacherManagement = () => {
                     <CustomInput control={control} name="email" label="Institutional Email" placeholder="faculty@school.com" rules={{required: true}} />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <CustomInput control={control} name="password" label="Portal Password" type="password" placeholder="********" rules={{required: true}} />
+                    {!editingTeacher && <CustomInput control={control} name="password" label="Portal Password" type="password" placeholder="********" rules={{required: true}} />}
                     <CustomInput control={control} name="contact" label="Direct Contact" placeholder="+1..." />
                  </div>
 
@@ -161,7 +189,7 @@ const TeacherManagement = () => {
 
                  <DialogFooter className="mt-8">
                    <Button type="submit" className="w-full h-12 bg-slate-900 text-white rounded-2xl font-black shadow-xl uppercase tracking-widest">
-                      Finalize Appointment
+                      {editingTeacher ? "Synchronize Changes" : "Finalize Appointment"}
                    </Button>
                  </DialogFooter>
                </form>
@@ -185,6 +213,7 @@ const TeacherManagement = () => {
                    <TableHead className="h-16 font-black text-[10px] uppercase tracking-widest text-slate-400">Identity</TableHead>
                    <TableHead className="h-16 font-black text-[10px] uppercase tracking-widest text-slate-400">Specialization</TableHead>
                    <TableHead className="h-16 font-black text-[10px] uppercase tracking-widest text-slate-400">Experience</TableHead>
+                   <TableHead className="h-16 font-black text-[10px] uppercase tracking-widest text-slate-400">Status</TableHead>
                    <TableHead className="pr-10 h-16 text-right"></TableHead>
                  </TableRow>
                </TableHeader>
@@ -222,6 +251,11 @@ const TeacherManagement = () => {
                            {teacher.teacherDetails?.yearsOfExperience || 0} Years
                         </div>
                      </TableCell>
+                     <TableCell>
+                        <Badge variant="outline" className={`font-bold uppercase text-[9px] ${teacher.isActive ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"}`}>
+                           {teacher.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                     </TableCell>
                      <TableCell className="pr-10 text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -230,8 +264,11 @@ const TeacherManagement = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[160px]">
-                            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
-                              <Edit2 className="h-4 w-4 mr-2" /> <span className="font-bold">Modify Status</span>
+                            <DropdownMenuItem onClick={() => handleEdit(teacher)} className="rounded-xl py-3 cursor-pointer">
+                              <Edit2 className="h-4 w-4 mr-2" /> <span className="font-bold">Modify Profile</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleStatusToggle(teacher._id, teacher.isActive)} className="rounded-xl py-3 cursor-pointer">
+                              <ShieldCheck className="h-4 w-4 mr-2" /> <span className="font-bold">{teacher.isActive ? "Deactivate" : "Activate"} Faculty</span>
                             </DropdownMenuItem>
                             <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-rose-600 focus:text-rose-600">
                               <Trash2 className="h-4 w-4 mr-2" /> <span className="font-bold">Revoke Access</span>

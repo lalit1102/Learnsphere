@@ -2,20 +2,19 @@ import React, { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { 
   Users, 
-  Plus, 
   Search, 
   MoreVertical, 
   Edit2, 
   Trash2, 
   UserPlus, 
   Home, 
-  Mail,
-  Phone,
-  Briefcase,
-  Heart,
-  Loader2,
-  ShieldCheck,
-  Link as LinkIcon
+  Mail, 
+  Phone, 
+  Briefcase, 
+  Heart, 
+  Loader2, 
+  ShieldCheck, 
+  Link as LinkIcon 
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -47,6 +46,7 @@ const ParentManagement = () => {
   const [parents, setParents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingParent, setEditingParent] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const { control, handleSubmit, reset } = useForm({
@@ -58,7 +58,7 @@ const ParentManagement = () => {
       occupation: "",
       relationToStudent: "Guardian",
       alternativeContact: "",
-      grNumbersRaw: "" // Comma separated string for UI
+      grNumbersRaw: ""
     }
   });
 
@@ -84,13 +84,46 @@ const ParentManagement = () => {
         ...data,
         childGrNumbers: data.grNumbersRaw.split(",").map(gr => gr.trim()).filter(gr => gr !== "")
       };
-      await api.post("/parents/enroll", payload);
-      toast.success("Guardian profile authorized and linked");
+      
+      if (editingParent) {
+        await api.put(`/parents/${editingParent._id}`, payload);
+        toast.success("Guardian profile successfully updated");
+      } else {
+        await api.post("/parents/enroll", payload);
+        toast.success("Guardian profile authorized and linked");
+      }
+      
       setIsDialogOpen(false);
+      setEditingParent(null);
       reset();
       fetchData();
     } catch (error) {
-      toast.error(error.response?.data?.message || "Enrollment failed");
+      toast.error(error.response?.data?.message || "Operation failed");
+    }
+  };
+
+  const handleEdit = (parent) => {
+    setEditingParent(parent);
+    reset({
+      name: parent.user?.name,
+      email: parent.user?.email,
+      contact: parent.user?.contact || "",
+      occupation: parent.occupation || "",
+      relationToStudent: parent.relationToStudent || "Guardian",
+      alternativeContact: parent.alternativeContact || "",
+      grNumbersRaw: parent.childGrNumbers?.join(", ") || ""
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to decommission this guardian profile?")) return;
+    try {
+      await api.delete(`/parents/${id}`);
+      toast.success("Guardian successfully removed");
+      fetchData();
+    } catch (error) {
+      toast.error("Deletion failed");
     }
   };
 
@@ -119,7 +152,10 @@ const ParentManagement = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
            </div>
-           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+           <Dialog open={isDialogOpen} onOpenChange={(open) => {
+             setIsDialogOpen(open);
+             if(!open) { setEditingParent(null); reset(); }
+           }}>
              <DialogTrigger asChild>
                <Button className="h-11 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold shadow-lg shadow-indigo-200 transition-all active:scale-95">
                  <UserPlus className="h-5 w-5 mr-2" /> Enroll Guardian
@@ -127,8 +163,8 @@ const ParentManagement = () => {
              </DialogTrigger>
              <DialogContent className="max-w-2xl rounded-[2.5rem] p-8 border-none shadow-2xl overflow-y-auto max-h-[90vh]">
                <DialogHeader className="mb-4">
-                 <DialogTitle className="text-2xl font-black italic uppercase">Guardian Enrollment</DialogTitle>
-                 <DialogDescription className="font-medium italic">Establishing the primary contact bridge for academic success.</DialogDescription>
+                 <DialogTitle className="text-2xl font-black italic uppercase">{editingParent ? "Edit Guardian Profile" : "Guardian Enrollment"}</DialogTitle>
+                 <DialogDescription className="font-medium italic">{editingParent ? "Update relational metadata and connectivity links." : "Establishing the primary contact bridge for academic success."}</DialogDescription>
                </DialogHeader>
                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                  {/* Identity Info */}
@@ -137,7 +173,7 @@ const ParentManagement = () => {
                     <CustomInput control={control} name="email" label="Contact Email" placeholder="guardian@email.com" rules={{required: true}} />
                  </div>
                  <div className="grid grid-cols-2 gap-4">
-                    <CustomInput control={control} name="password" label="Portal Password" type="password" placeholder="********" rules={{required: true}} />
+                    {!editingParent && <CustomInput control={control} name="password" label="Portal Password" type="password" placeholder="********" rules={{required: true}} />}
                     <CustomInput control={control} name="contact" label="Primary Phone" placeholder="+1..." />
                  </div>
 
@@ -171,7 +207,7 @@ const ParentManagement = () => {
 
                  <DialogFooter className="mt-8">
                    <Button type="submit" className="w-full h-12 bg-slate-900 text-white rounded-2xl font-black shadow-xl uppercase tracking-widest">
-                      Authorize Connectivity
+                      {editingParent ? "Synchronize Connectivity" : "Authorize Connectivity"}
                    </Button>
                  </DialogFooter>
                </form>
@@ -252,10 +288,10 @@ const ParentManagement = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="rounded-2xl border-none shadow-2xl p-2 min-w-[160px]">
-                            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer">
+                            <DropdownMenuItem onClick={() => handleEdit(parent)} className="rounded-xl py-3 cursor-pointer">
                               <Edit2 className="h-4 w-4 mr-2" /> <span className="font-bold">Update Profile</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="rounded-xl py-3 cursor-pointer text-rose-600 focus:text-rose-600">
+                            <DropdownMenuItem onClick={() => handleDelete(parent._id)} className="rounded-xl py-3 cursor-pointer text-rose-600 focus:text-rose-600">
                               <Trash2 className="h-4 w-4 mr-2" /> <span className="font-bold">Dissolve Link</span>
                             </DropdownMenuItem>
                           </DropdownMenuContent>

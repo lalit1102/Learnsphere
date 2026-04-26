@@ -18,10 +18,14 @@ import MyLearning from "@/pages/student/MyLearning";
 import Attendance from "@/pages/academics/Attendance";
 import AttendanceReport from "@/pages/reports/AttendanceReport";
 import AcademicReports from "@/pages/reports/AcademicReports";
+import ActivityReports from "@/pages/reports/ActivityReports";
 import ActivitiesLog from "@/pages/admin/ActivitiesLog";
 import ClassManagement from "@/pages/academics/ClassManagement";
 import SubjectManagement from "@/pages/academics/SubjectManagement";
 import TimetableManagement from "@/pages/academics/TimetableManagement";
+import ClassDetails from "@/pages/academics/ClassDetails";
+import StudentProfile from "@/pages/dashboard/StudentProfile";
+import SyllabusManagement from "@/pages/academics/SyllabusManagement";
 import GeneralSettings from "@/pages/settings/GeneralSettings";
 import AcademicYears from "@/pages/settings/AcademicYears";
 import Roles from "@/pages/settings/Roles";
@@ -43,8 +47,11 @@ const router = createBrowserRouter([
           // Academic
           { path: "attendance", element: <Attendance /> },
           { path: "academics/classes", element: <ClassManagement /> },
+          { path: "dashboard/classes/:id", element: <ClassDetails /> },
           { path: "academics/subjects", element: <SubjectManagement /> },
           { path: "academics/timetable", element: <TimetableManagement /> },
+          { path: "dashboard/students/:id", element: <StudentProfile /> },
+          { path: "academics/syllabus", element: <SyllabusManagement /> },
 
           // Admn Specific
           { 
@@ -83,6 +90,7 @@ const router = createBrowserRouter([
           // Reports
           { path: "reports/attendance", element: <AttendanceReport /> },
           { path: "reports/academic", element: <AcademicReports /> },
+          { path: "reports/activity", element: <ActivityReports /> },
 
           // Activity Logs
           { path: "activities-log", element: <ActivitiesLog /> },
