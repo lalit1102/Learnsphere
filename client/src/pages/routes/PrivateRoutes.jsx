@@ -37,9 +37,9 @@ const PrivateRoutes = () => {
       <AppSidebar />
       <SidebarInset className="overflow-x-hidden">
         {/* Global Mobile Topbar */}
-        <header className="md:hidden flex h-14 items-center gap-2 border-b bg-white dark:bg-slate-950 px-4 shrink-0 transition-all">
-           <SidebarTrigger className="-ml-1" />
-           <span className="font-bold text-sm tracking-widest uppercase italic text-slate-800 dark:text-slate-200">Menu</span>
+        <header className="md:hidden flex h-14 items-center gap-2 border-b-0 bg-indigo-600 px-4 shrink-0 transition-all shadow-md">
+           <SidebarTrigger className="-ml-1 text-white hover:bg-indigo-500" />
+           <span className="font-bold text-sm tracking-widest uppercase italic text-white">Menu</span>
         </header>
         <Outlet />
       </SidebarInset>

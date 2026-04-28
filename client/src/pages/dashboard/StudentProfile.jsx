@@ -233,7 +233,11 @@ const StudentProfile = () => {
                      <h4 className="text-xl font-black text-foreground italic uppercase tracking-tight">Academic Cohort</h4>
                      <p className="text-muted-foreground font-medium leading-relaxed italic text-sm">Assigned to {student.user?.studentClass?.name || "Grade 10-A"}. All syllabus materials are synchronized.</p>
                   </div>
-                  <Button variant="ghost" className="p-0 h-auto text-primary hover:bg-transparent font-black flex items-center gap-2 text-[10px] uppercase tracking-widest">
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate("/academics/syllabus")}
+                    className="p-0 h-auto text-primary hover:bg-transparent font-black flex items-center gap-2 text-[10px] uppercase tracking-widest"
+                  >
                      View Syllabus <ExternalLink className="w-4 h-4" />
                   </Button>
                </Card>

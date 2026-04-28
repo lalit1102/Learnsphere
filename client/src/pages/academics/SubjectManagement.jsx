@@ -265,11 +265,15 @@ const SubjectManagement = () => {
                              <span className="text-sm font-bold text-slate-600">{subj.teacher?.[0]?.name || "Unassigned"}</span>
                           </div>
                           <div className="flex flex-wrap gap-1 max-w-[200px]">
-                             {subj.assignedClasses?.map(cls => (
-                               <Badge key={cls._id} variant="secondary" className="text-[8px] font-bold h-4 bg-slate-100 dark:bg-white/5 text-slate-500 border-none uppercase">
-                                  {cls.name}
-                               </Badge>
-                             ))}
+                             {subj.assignedClasses && subj.assignedClasses.length > 0 ? (
+                               subj.assignedClasses.map(cls => (
+                                 <span key={cls._id} className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md text-xs font-medium">
+                                    {cls.name}
+                                 </span>
+                               ))
+                             ) : (
+                               <span className="text-slate-400 text-xs font-medium italic">No classes assigned</span>
+                             )}
                           </div>
                        </div>
                     </TableCell>
